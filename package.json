@@ -1,0 +1,13 @@
+{
+  "name": "tree",
+  "source": "src/index.html",
+  "version": "0.0.1",
+  "license": "GPL-3.0-only",
+  "scripts": {
+      "start": "parcel",
+      "build": "parcel build"
+  },
+  "devDependencies": {
+    "parcel": "^2.8.3"
+  }
+}
