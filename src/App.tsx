@@ -58,7 +58,7 @@ const FamilyManager: Component = () => {
                     <label>Family name</label>
                     <input type="text" placeholder="Family name" onInput={(e) => setLastName(e.target.value)} required />
                     <label>Gender</label>
-                    <select class="px-4 py-2 rounded-md">
+                    <select class="px-4 py-2 rounded-md" onInput={(e) => setGender(e.target.value as Gender)}>
                         <option value="" selected hidden>Select gender</option>
                         <For each={Object.entries(Gender)}>
                             {([name, id]) => (
