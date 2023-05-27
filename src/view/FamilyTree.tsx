@@ -1,24 +1,6 @@
-import { Component, createSignal, onCleanup } from "solid-js";
-import { Person, Gender, Family, Relation } from "./family";
-
-const family: Family = new Family(
-    [
-        new Person("John", "Doe", Gender.Male, new Date(1940, 8, 27), new Date(2010, 9, 17)),
-        new Person("Jane", "Brennan", Gender.Female, new Date(1945, 5, 14), new Date(2013, 6, 28)),
-        new Person("Jack", "Doe", Gender.Male, new Date(1965, 10, 23)),
-        new Person("Jill", "Doe", Gender.Female, new Date(1966, 5, 14)),
-        new Person("James", "Brown", Gender.Male, new Date(1962, 8, 27), new Date(2015, 8, 27)),
-        new Person("Jenny", "Brown", Gender.Female, new Date(1987, 5, 14)),
-        new Person("Joe", "Brown", Gender.Male, new Date(1991, 5, 14)),
-        new Person("Jade", "Brown", Gender.Female, new Date(1992, 2, 12)),
-        new Person("Judy", "Boure", Gender.Female, new Date(1967, 3, 30)),
-    ],
-    [
-        new Relation(0, 1, [2, 3]),
-        new Relation(3, 4, [5, 6, 7]),
-        new Relation(2, 8),
-    ],
-);
+import { Component } from "solid-js";
+import { Family, Person } from "../model/family";
+import { useFamily } from "./FamilyProvider";
 
 const drawSettings = {
     nodeWidth: 130,
@@ -53,15 +35,6 @@ function drawPerson(ctx: CanvasRenderingContext2D, person: Person, x: number, y:
     }
     ctx.font = "10px sans-serif";
     ctx.fillText(ageLabel, x, y + 14);
-}
-
-function drawCurvedLine(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) {
-    ctx.lineWidth = drawSettings.lineWidth;
-    ctx.beginPath();
-    ctx.moveTo(fromX, fromY + drawSettings.nodeHeight / 2);
-    ctx.quadraticCurveTo(toX, toY - drawSettings.nodeHeight - 30, toX, toY - drawSettings.nodeHeight / 2);
-    ctx.strokeStyle = drawSettings.lineColor;
-    ctx.stroke();
 }
 
 function drawLine(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) {
@@ -138,22 +111,17 @@ function drawFamilyTree(family: Family, root: number, ctx: CanvasRenderingContex
     }
 }
 
-export const Tree: Component = () => {
+export const FamilyTree: Component = () => {
     let canvasRef;
-    let [ctx, setCtx] = createSignal(null);
+    const [family] = useFamily();
 
-    const setupCanvas = (canvas) => {
+    const setupCanvas = (canvas: HTMLCanvasElement) => {
         if (canvas) {
             canvasRef = canvas;
-            const ctx = canvas.getContext('2d');
-            setCtx(ctx);
+            const ctx: CanvasRenderingContext2D = canvas.getContext('2d')!;
             drawFamilyTree(family, 0, ctx, canvas.width / 2, drawSettings.nodeHeight);
         }
     };
-
-    onCleanup(() => {
-        // cleanup code
-    });
 
     return (
         <canvas width="800" height="400" ref={setupCanvas} />
