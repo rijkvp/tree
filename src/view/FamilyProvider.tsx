@@ -2,8 +2,6 @@ import { createContext, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
 import { Family, Gender, Person, Relation } from "../model/family";
 
-const FamilyContext = createContext();
-
 const exampleFamily = new Family(
     [
         new Person("John", "Doe", Gender.Male, new Date(1940, 8, 27), new Date(2010, 9, 17)),
@@ -23,6 +21,8 @@ const exampleFamily = new Family(
     ],
 );
 
+const FamilyContext = createContext();
+
 export function FamilyProvider(props: any) {
     const [family, setFamily] = createStore(exampleFamily),
         familyValue = [
@@ -30,6 +30,14 @@ export function FamilyProvider(props: any) {
             {
                 addPerson(person: Person) {
                     setFamily(f => new Family([...f.persons, person], f.relations));
+                },
+                removePerson(index: number) {
+                    setFamily(f => {
+                        const persons = [...f.persons];
+                        const relations = [...f.relations];
+                        persons.splice(index, 1);
+                        return new Family(persons, relations.filter(r => r.male == index || r.female == index));
+                    });
                 }
             }
         ];
@@ -41,4 +49,4 @@ export function FamilyProvider(props: any) {
     );
 }
 
-export function useFamily(): any { return useContext(FamilyContext); }
+export function useFamily() { return useContext(FamilyContext); }

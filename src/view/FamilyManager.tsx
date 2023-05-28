@@ -1,8 +1,10 @@
-import { Component, createSignal, For, Show } from "solid-js";
+import { Component, createSignal, For, Match, Show, Switch } from "solid-js";
 import { Gender, Person } from "../model/family";
 import { useFamily } from "./FamilyProvider";
 
-const FamilyList: Component = (props: any) => {
+const FamilyList: Component<{ setInspectState: Function }> = (props: any) => {
+    const [family] = useFamily();
+
     return <div>
         <h2>People</h2>
         <table class="table-auto">
@@ -16,9 +18,12 @@ const FamilyList: Component = (props: any) => {
                 </tr>
             </thead>
             <tbody>
-                <For each={props.family.persons}>
-                    {(person) => (
-                        <tr>
+                <For each={family.persons}>
+                    {(person, i) => (
+                        <tr onClick={() => props.setInspectState({
+                            type: InspectStateType.EditPerson,
+                            selected: i() as number,
+                        })}>
                             <td>{person.firstName}</td>
                             <td>{person.lastName}</td>
                             <td>{person.gender}</td>
@@ -29,56 +34,105 @@ const FamilyList: Component = (props: any) => {
                 </For>
             </tbody>
         </table>
+    </div >;
+}
+
+const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props: any) => {
+    const [firstName, setFirstName] = createSignal<string>(props.person.firstName);
+    const [lastName, setLastName] = createSignal<string>(props.person.lastName);
+    const [gender, setGender] = createSignal<Gender>(props.person.gender);
+    const [dateOfBirth, setBirthDate] = createSignal<Date>(props.person.birthDate);
+    const [isDeceased, setIsDead] = createSignal(props.person.deceased != undefined);
+    const [dateOfDeath, setDeathDate] = createSignal<Date>(props.person.deceased ?? new Date());
+
+    function save() {
+        const person = new Person(firstName(), lastName(), gender()!, dateOfBirth(), isDeceased() ? dateOfDeath() : undefined);
+        props.setPerson(person);
+    }
+
+    return <div class="grid grid-cols-2 gap-4">
+        <label>First name</label>
+        <input type="text" placeholder="First name" value={firstName()} onInput={(e) => setFirstName(e.target.value)} required />
+        <label>Family name</label>
+        <input type="text" placeholder="Family name" value={lastName()} onInput={(e) => setLastName(e.target.value)} required />
+        <label>Gender</label>
+        <select class="px-4 py-2 rounded-md" value={gender()} onInput={(e) => setGender(e.target.value as Gender)}>
+            <option value="" selected hidden>Select gender</option>
+            <For each={Object.entries(Gender)}>
+                {([name, id]) => (
+                    <option value={id}>{name}</option>
+                )}
+            </For>
+        </select>
+        <label>Date of birth</label>
+        <input type="date" value={dateOfBirth().toString()} onInput={(e) => setBirthDate(new Date(e.target.value))} required />
+        <label>Deceased</label>
+        <input type="checkbox" onInput={(e) => setIsDead(e.target.checked)} />
+        <Show when={isDeceased()}>
+            <label>Date of death</label>
+            <input type="date" value={dateOfDeath().toString()} onInput={(e) => setDeathDate(new Date(e.target.value))} required />
+        </Show>
     </div>;
 }
 
-export const FamilyManager: Component = () => {
-    const [family, { addPerson }] = useFamily();
+const Inspector: Component<{ inspectState: InspectState }> = (props: any) => {
+    const [family, { addPerson, removePerson }] = useFamily();
 
-    const [firstName, setFirstName] = createSignal<string>('');
-    const [lastName, setLastName] = createSignal<string>('');
-    const [gender, setGender] = createSignal<Gender>();
-    const [dateOfBirth, setBirthDate] = createSignal<Date>(new Date());
-    const [isDeceased, setIsDead] = createSignal(false);
-    const [dateOfDeath, setDeathDate] = createSignal<Date>(new Date());
+    const selectedPerson = () => family.persons[props.inspectState.selected];
 
-    function insertPerson(e: SubmitEvent) {
-        e.preventDefault();
-        const person = new Person(firstName(), lastName(), gender()!, dateOfBirth(), isDeceased() ? dateOfDeath() : undefined);
-        addPerson(person);
+    function updatePerson(person: Person) {
+        if (props.inspectState.type = InspectStateType.AddPerson) {
+            addPerson(person);
+        } else if (props.inspectState.type == InspectStateType.EditPerson) {
+            family[props.inspectState.selected].person = person;
+        }
     }
+
+    return <>
+        <Show when={props.inspectState.type != InspectStateType.None}>
+            <Switch>
+                <Match when={props.inspectState.type == InspectStateType.AddPerson}>
+                    <h2>Add person</h2>
+                    <PersonEditor person={new Person('', '', Gender.Male, new Date())} setPerson={updatePerson} />
+                </Match>
+                <Match when={props.inspectState.type == InspectStateType.EditPerson}>
+                    <h2>Edit person {props.inspectState.selected} {selectedPerson().firstName}</h2>
+                    <PersonEditor person={selectedPerson()} setPerson={updatePerson} />
+                    <button class="rounded-md bg-sky-500 hover:bg-sky-700 font-semibold px-4 py-2 text-white" onClick={save}>Save</button>
+                    <button onClick={() => removePerson(props.inspectState.selected)}>Remove person</button>
+                </Match>
+                <Match when={props.inspectState.type == InspectStateType.AddRelation}>
+                    <h2>Add relation</h2>
+                    <p>To-Do</p>
+                </Match>
+            </Switch>
+        </Show>
+    </>;
+}
+
+enum InspectStateType {
+    None,
+    AddPerson,
+    EditPerson,
+    AddRelation,
+    EditRelation,
+}
+
+interface InspectState {
+    type: InspectStateType,
+    selected: number,
+}
+
+export const FamilyManager: Component = () => {
+    const [inspectState, setInspectState] = createSignal<InspectState>({ type: InspectStateType.None, selected: -1 });
 
     return (
         <div class="container mx-auto">
             <h2>Family Manager</h2>
-            <FamilyList family={family} />
-            <form onSubmit={insertPerson}>
-                <h2>Add person</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <label>First name</label>
-                    <input type="text" placeholder="First name" onInput={(e) => setFirstName(e.target.value)} required />
-                    <label>Family name</label>
-                    <input type="text" placeholder="Family name" onInput={(e) => setLastName(e.target.value)} required />
-                    <label>Gender</label>
-                    <select class="px-4 py-2 rounded-md" onInput={(e) => setGender(e.target.value as Gender)}>
-                        <option value="" selected hidden>Select gender</option>
-                        <For each={Object.entries(Gender)}>
-                            {([name, id]) => (
-                                <option value={id}>{name}</option>
-                            )}
-                        </For>
-                    </select>
-                    <label>Date of birth</label>
-                    <input type="date" onInput={(e) => setBirthDate(new Date(e.target.value))} required />
-                    <label>Deceased</label>
-                    <input type="checkbox" onInput={(e) => setIsDead(e.target.checked)} />
-                    <Show when={isDeceased()}>
-                        <label>Date of death</label>
-                        <input type="date" onInput={(e) => setDeathDate(new Date(e.target.value))} required />
-                    </Show>
-                </div>
-                <button class="rounded-md bg-sky-500 hover:bg-sky-700 font-semibold px-4 py-2 text-white" type="submit">Submit</button>
-            </form>
+            <button onClick={() => setInspectState({ type: InspectStateType.AddPerson, selected: -1 })}>Add person</button>
+            <button onClick={() => setInspectState({ type: InspectStateType.AddRelation, selected: -1 })}>Add relation</button>
+            <FamilyList setInspectState={setInspectState} />
+            <Inspector inspectState={inspectState()} />
         </div>
     );
 };
