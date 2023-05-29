@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, For } from "solid-js";
+import { Component, createEffect, createSignal, For, onCleanup } from "solid-js";
 import { Family, Person } from "../model/family";
 import { useFamily } from "./FamilyProvider";
 
@@ -28,7 +28,7 @@ function drawPerson(ctx: CanvasRenderingContext2D, person: Person, x: number, y:
     ctx.textBaseline = "middle";
     ctx.font = "16px sans-serif";
     ctx.fillStyle = drawSettings.textColor;
-    ctx.fillText(`${person.firstName} ${person.lastName} (${person.gender})`, x, y - 4);
+    ctx.fillText(person.summary(), x, y - 5);
     let ageLabel = person.birthDate.toLocaleDateString();
     if (person.deceased) {
         ageLabel += " - " + person.deceased.toLocaleDateString();
@@ -123,12 +123,24 @@ export const FamilyTree: Component = () => {
     };
 
     createEffect(() => {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        drawFamilyTree(family, selectedPerson(), context, canvas.width / 2, drawSettings.nodeHeight);
+        const drawCanvas = () => {
+            const canvasWidth = canvas.getBoundingClientRect().width;
+            //const canvasHeight = canvas.getBoundingClientRect().height;
+            canvas.width = canvasWidth;
+            //canvas.height = canvasHeight;
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            drawFamilyTree(family, selectedPerson(), context, canvas.width / 2, drawSettings.nodeHeight);
+
+        };
+        window.addEventListener('resize', drawCanvas);
+        drawCanvas();
+
+        onCleanup(() => {
+            window.removeEventListener('resize', drawCanvas);
+        });
     });
 
     return <>
-        <h2>Family tree</h2>
         <label class="px-4 py-2">Select person</label>
         <select class="px-4 py-2 rounded-md" onInput={(e) => setSelectedPerson(parseInt(e.target.value))}>
             <For each={family.persons}>
@@ -137,6 +149,6 @@ export const FamilyTree: Component = () => {
                 )}
             </For>
         </select>
-        <canvas width="800" height="400" ref={setupCanvas} />
+        <canvas class="w-full" height="400px" ref={setupCanvas} />
     </>;
 };

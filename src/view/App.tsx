@@ -5,12 +5,10 @@ import { FamilyProvider } from './FamilyProvider';
 
 const App: Component = () => {
     return (
-        <div class="container mx-auto">
-            <FamilyProvider>
-                <FamilyTree />
-                <FamilyManager />
-            </FamilyProvider>
-        </div>
+        <FamilyProvider>
+            <FamilyTree />
+            <FamilyManager />
+        </FamilyProvider>
     );
 };
 

@@ -32,7 +32,6 @@ export function FamilyProvider(props: any) {
                     setFamily(f => new Family([...f.persons, person], f.relations));
                 },
                 updatePerson(index: number, person: Person) {
-                    console.log('UPDATE PERSON', index, person);
                     setFamily(f => {
                         const persons = [...f.persons];
                         persons[index] = person;
