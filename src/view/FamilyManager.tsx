@@ -1,4 +1,4 @@
-import { Component, createSignal, For, Match, Show, Switch } from "solid-js";
+import { Component, createEffect, createSignal, For, Match, Show, Switch } from "solid-js";
 import { Gender, Person } from "../model/family";
 import { useFamily } from "./FamilyProvider";
 
@@ -41,14 +41,18 @@ const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props
     const [firstName, setFirstName] = createSignal<string>(props.person.firstName);
     const [lastName, setLastName] = createSignal<string>(props.person.lastName);
     const [gender, setGender] = createSignal<Gender>(props.person.gender);
-    const [dateOfBirth, setBirthDate] = createSignal<Date>(props.person.birthDate);
+    const [birthDate, setBirthDate] = createSignal<Date>(props.person.birthDate);
     const [isDeceased, setIsDead] = createSignal(props.person.deceased != undefined);
-    const [dateOfDeath, setDeathDate] = createSignal<Date>(props.person.deceased ?? new Date());
+    const [deathDate, setDeathDate] = createSignal<Date>(props.person.deceased ?? new Date());
 
-    function save() {
-        const person = new Person(firstName(), lastName(), gender()!, dateOfBirth(), isDeceased() ? dateOfDeath() : undefined);
-        props.setPerson(person);
-    }
+    createEffect(() => {
+        setFirstName(props.person.firstName);
+        setLastName(props.person.lastName);
+        setGender(props.person.gender);
+        setBirthDate(props.person.birthDate);
+        setIsDead(props.person.deceased != undefined);
+        setDeathDate(props.person.deceased ?? new Date());
+    });
 
     return <div class="grid grid-cols-2 gap-4">
         <label>First name</label>
@@ -65,12 +69,12 @@ const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props
             </For>
         </select>
         <label>Date of birth</label>
-        <input type="date" value={dateOfBirth().toString()} onInput={(e) => setBirthDate(new Date(e.target.value))} required />
+        <input type="date" value={birthDate().toString()} onInput={(e) => setBirthDate(new Date(e.target.value))} required />
         <label>Deceased</label>
         <input type="checkbox" onInput={(e) => setIsDead(e.target.checked)} />
         <Show when={isDeceased()}>
             <label>Date of death</label>
-            <input type="date" value={dateOfDeath().toString()} onInput={(e) => setDeathDate(new Date(e.target.value))} required />
+            <input type="date" value={deathDate().toString()} onInput={(e) => setDeathDate(new Date(e.target.value))} required />
         </Show>
     </div>;
 }
@@ -88,6 +92,10 @@ const Inspector: Component<{ inspectState: InspectState }> = (props: any) => {
         }
     }
 
+    function save() {
+        console.log('save');
+    }
+
     return <>
         <Show when={props.inspectState.type != InspectStateType.None}>
             <Switch>
@@ -98,7 +106,7 @@ const Inspector: Component<{ inspectState: InspectState }> = (props: any) => {
                 <Match when={props.inspectState.type == InspectStateType.EditPerson}>
                     <h2>Edit person {props.inspectState.selected} {selectedPerson().firstName}</h2>
                     <PersonEditor person={selectedPerson()} setPerson={updatePerson} />
-                    <button class="rounded-md bg-sky-500 hover:bg-sky-700 font-semibold px-4 py-2 text-white" onClick={save}>Save</button>
+                    <button class="" onClick={save}>Save</button>
                     <button onClick={() => removePerson(props.inspectState.selected)}>Remove person</button>
                 </Match>
                 <Match when={props.inspectState.type == InspectStateType.AddRelation}>
