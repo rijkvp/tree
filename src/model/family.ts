@@ -18,6 +18,10 @@ export class Person {
         this.birthDate = birthDate;
         this.deceased = deceased;
     }
+
+    summary(): string {
+        return `${this.firstName} ${this.lastName} (${this.gender})`;
+    }
 }
 
 export class Family {

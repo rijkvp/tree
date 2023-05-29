@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, For, Match, Show, Switch } from "solid-js";
+import { Component, createEffect, createSignal, For, Match, Setter, Show, Switch } from "solid-js";
 import { Gender, Person } from "../model/family";
 import { useFamily } from "./FamilyProvider";
 
@@ -37,7 +37,7 @@ const FamilyList: Component<{ setInspectState: Function }> = (props: any) => {
     </div >;
 }
 
-const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props: any) => {
+const PersonEditor: Component<{ person: Person, onChange: Function, }> = (props: any) => {
     const [firstName, setFirstName] = createSignal<string>(props.person.firstName);
     const [lastName, setLastName] = createSignal<string>(props.person.lastName);
     const [gender, setGender] = createSignal<Gender>(props.person.gender);
@@ -54,9 +54,14 @@ const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props
         setDeathDate(props.person.deceased ?? new Date());
     });
 
+    const save = () => {
+        const person = new Person(firstName(), lastName(), gender(), birthDate(), deathDate());
+        props.onChange(person);
+    }
+
     return <div class="grid grid-cols-2 gap-4">
         <label>First name</label>
-        <input type="text" placeholder="First name" value={firstName()} onInput={(e) => setFirstName(e.target.value)} required />
+        <input type="text" placeholder="First name" value={props.person.firstName} onInput={(e) => setFirstName(e.target.value)} required />
         <label>Family name</label>
         <input type="text" placeholder="Family name" value={lastName()} onInput={(e) => setLastName(e.target.value)} required />
         <label>Gender</label>
@@ -76,24 +81,22 @@ const PersonEditor: Component<{ person: Person, setPerson: Function, }> = (props
             <label>Date of death</label>
             <input type="date" value={deathDate().toString()} onInput={(e) => setDeathDate(new Date(e.target.value))} required />
         </Show>
+        <button onClick={save}>Save</button>
     </div>;
 }
 
-const Inspector: Component<{ inspectState: InspectState }> = (props: any) => {
-    const [family, { addPerson, removePerson }] = useFamily();
+const Inspector: Component<{ inspectState: InspectState, setInspectState: Setter<InspectState> }> = (props: any) => {
+    const [family, { addPerson, updatePerson, removePerson }] = useFamily();
 
     const selectedPerson = () => family.persons[props.inspectState.selected];
 
-    function updatePerson(person: Person) {
-        if (props.inspectState.type = InspectStateType.AddPerson) {
+    function onPersonChange(person: Person) {
+        if (props.inspectState.type == InspectStateType.AddPerson) {
             addPerson(person);
         } else if (props.inspectState.type == InspectStateType.EditPerson) {
-            family[props.inspectState.selected].person = person;
+            updatePerson(props.inspectState.selected, person);
         }
-    }
-
-    function save() {
-        console.log('save');
+        props.setInspectState({ type: InspectStateType.None, selected: -1 });
     }
 
     return <>
@@ -101,12 +104,11 @@ const Inspector: Component<{ inspectState: InspectState }> = (props: any) => {
             <Switch>
                 <Match when={props.inspectState.type == InspectStateType.AddPerson}>
                     <h2>Add person</h2>
-                    <PersonEditor person={new Person('', '', Gender.Male, new Date())} setPerson={updatePerson} />
+                    <PersonEditor person={new Person('', '', Gender.Male, new Date())} onChange={onPersonChange} />
                 </Match>
                 <Match when={props.inspectState.type == InspectStateType.EditPerson}>
-                    <h2>Edit person {props.inspectState.selected} {selectedPerson().firstName}</h2>
-                    <PersonEditor person={selectedPerson()} setPerson={updatePerson} />
-                    <button class="" onClick={save}>Save</button>
+                    <h2>Edit person</h2>
+                    <PersonEditor person={selectedPerson()} onChange={onPersonChange} />
                     <button onClick={() => removePerson(props.inspectState.selected)}>Remove person</button>
                 </Match>
                 <Match when={props.inspectState.type == InspectStateType.AddRelation}>
@@ -140,7 +142,7 @@ export const FamilyManager: Component = () => {
             <button onClick={() => setInspectState({ type: InspectStateType.AddPerson, selected: -1 })}>Add person</button>
             <button onClick={() => setInspectState({ type: InspectStateType.AddRelation, selected: -1 })}>Add relation</button>
             <FamilyList setInspectState={setInspectState} />
-            <Inspector inspectState={inspectState()} />
+            <Inspector inspectState={inspectState()} setInspectState={setInspectState} />
         </div>
     );
 };

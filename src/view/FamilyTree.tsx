@@ -1,4 +1,4 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, createEffect, createSignal, For } from "solid-js";
 import { Family, Person } from "../model/family";
 import { useFamily } from "./FamilyProvider";
 
@@ -117,29 +117,23 @@ export const FamilyTree: Component = () => {
     const [selectedPerson, setSelectedPerson] = createSignal(0);
     const [family] = useFamily();
 
-    function drawTree() {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-        drawFamilyTree(family, selectedPerson(), context, canvas.width / 2, drawSettings.nodeHeight);
-    }
-
     const setupCanvas = (canvasRef: HTMLCanvasElement) => {
         canvas = canvasRef;
         context = canvasRef.getContext('2d')!;
-        drawTree();
     };
 
-    function updateTree(e: InputEvent) {
-        setSelectedPerson(parseInt((e!.target as HTMLSelectElement).value));
-        drawTree();
-    }
+    createEffect(() => {
+        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+        drawFamilyTree(family, selectedPerson(), context, canvas.width / 2, drawSettings.nodeHeight);
+    });
 
     return <>
         <h2>Family tree</h2>
         <label class="px-4 py-2">Select person</label>
-        <select class="px-4 py-2 rounded-md" onInput={updateTree}>
+        <select class="px-4 py-2 rounded-md" onInput={(e) => setSelectedPerson(parseInt(e.target.value))}>
             <For each={family.persons}>
                 {(person, index) => (
-                    <option value={index()}>{person.firstName}</option>
+                    <option value={index()} selected={index() == selectedPerson()}>{person.summary()}</option>
                 )}
             </For>
         </select>
